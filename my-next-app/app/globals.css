@@ -14,13 +14,25 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #655151;
     --foreground: #ededed;
   }
 }
 
-body {
+/* 🚀 Fixes scrolling issues */
+html, body {
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  margin: 0;
+  padding: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans, Arial, sans-serif);
+}
+
+/* 🛠️ Ensures Next.js wrapper doesn't block scrolling */
+#__next {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
