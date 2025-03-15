@@ -1,13 +1,23 @@
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from typing import List, Optional
+from mistralai.client import MistralClient
+from mistralai.models.chat_completion import ChatMessage
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Sample FastAPI Application",
-    description="A simple API demonstrating FastAPI features",
+    title="AI Chat API",
+    description="API for chatting with Mistral AI",
     version="1.0.0"
 )
+
+# Initialize Mistral client
+client = MistralClient(api_key=os.getenv("MISTRAL_API_KEY"))
 
 # Pydantic model for request body validation
 class Item(BaseModel):
@@ -22,7 +32,7 @@ items_db = {}
 @app.get("/")
 async def root():
     """Root endpoint returning a welcome message"""
-    return {"message": "Welcome to FastAPI!", "status": "OK"}
+    return {"message": "Welcome to the AI Chat API", "status": "active"}
 
 @app.get("/items/", response_model=List[Item])
 async def get_items():
@@ -70,4 +80,36 @@ async def search_items(keyword: str = Query(None, min_length=3)):
         item for item in items_db.values()
         if keyword.lower() in item.name.lower()
     ]
-    return results 
+    return results
+
+class ChatRequest(BaseModel):
+    message: str
+    system_prompt: str = "You are a helpful AI assistant"
+    temperature: float = 0.7
+    max_tokens: int = 500
+
+@app.post("/chat")
+async def chat_endpoint(request: ChatRequest):
+    try:
+        # Create the chat messages
+        messages = [
+            ChatMessage(role="system", content=request.system_prompt),
+            ChatMessage(role="user", content=request.message)
+        ]
+
+        # Make the API call
+        chat_response = client.chat(
+            model="mistral-medium",
+            messages=messages,
+            temperature=request.temperature,
+            max_tokens=request.max_tokens
+        )
+
+        # Return the response
+        return {
+            "response": chat_response.choices[0].message.content,
+            "status": "success"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) 
